@@ -7,6 +7,17 @@ const Jimp = require('jimp');
 
 const app = express();
 
+if(process.argv.includes('--help') || isNaN(process.argv[2])) {
+  const info = require('./package.json');
+  console.log(`${info.name} ${info.version}`);
+  console.log('\n'+info.description+'\n');
+  console.log('Arguments:');
+  console.log('    <port> : port to listen on');
+  console.log('    --css : Do not strip CSS. CSS will be minified.');
+  console.log('    --fullimages : Do not resize or convert images.');
+  console.log('    --help : display this message');
+  process.exit();
+}
 const port = process.argv[2];
 const stripCSS = !process.argv.includes('--css');
 const minifyImages = !process.argv.includes('--fullimages');
