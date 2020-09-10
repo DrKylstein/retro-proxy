@@ -1,0 +1,17 @@
+{
+  "name":"retro-proxy",
+  "description":"A https to http proxy that allow old browsers to access modern sites. By default, it also  strips javascript and css, minifies html, and resizes and converts images."
+  "version":"0.0.1",
+  "license":"BSD-3-Clause",
+  "scripts": {
+    "start": "nodemon ./ 3000"
+  },
+  "dependencies": {
+    "cheerio": "^1.0.0-rc.3",
+    "clean-css": "^4.2.3",
+    "express": "^4.17.1",
+    "html-minifier": "^4.0.0",
+    "jimp": "^0.16.1",
+    "node-fetch": "^2.6.1"
+  }
+}
