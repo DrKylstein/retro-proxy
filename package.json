@@ -1,6 +1,7 @@
 {
   "name":"retro-proxy",
-  "description":"A https to http proxy that allow old browsers to access modern sites. By default, it also  strips javascript and css, minifies html, and resizes and converts images."
+  "description":"A https to http proxy that allow old browsers to access modern sites, with conversion and compression options.",
+  "homepage":"https://github.com/DrKylstein/retro-proxy",
   "version":"0.0.1",
   "license":"BSD-3-Clause",
   "scripts": {
