@@ -1,3 +1,4 @@
+const fs = require('fs');
 const fetch = require('node-fetch');
 const express = require('express');
 const cheerio = require('cheerio');
@@ -15,13 +16,22 @@ if(process.argv.includes('--help') || isNaN(process.argv[2])) {
   console.log('    <port> : port to listen on');
   console.log('    --css : Do not strip CSS. CSS will be minified.');
   console.log('    --fullimages : Do not resize or convert images.');
+  console.log('    --friendlies=<file> : enables css and full images for the domains listed in file');
   console.log('    --help : display this message');
   process.exit();
 }
 const port = process.argv[2];
 const stripCSS = !process.argv.includes('--css');
 const minifyImages = !process.argv.includes('--fullimages');
-
+let friendlies = [];
+{
+  const arg = '--friendlies=';
+  const match = process.argv.find(a => a.startsWith(arg));
+  let filename = match.slice(arg.length);
+  const input = fs.readFileSync(filename,{encoding:'utf-8'});
+  friendlies = input.trim().split('\n');
+  console.log('friendlies',friendlies);
+}
 const maxSrcWidth = 800;
 const maxInlineWidth = 608;
 
@@ -68,13 +78,17 @@ const cssMinifyOptions = {
 const minifyOptions = {
   collapseBooleanAttributes:true,
   collapseWhitespace:true,
+  processConditionalComments:true,
   removeComments:true,
   minifyCSS:stripCSS? false : cssMinifyOptions
 };
 
 app.get('*', async (req, res, next) => {
+  const friendly = friendlies.some(f => req.hostname.endsWith(f));
   const url = req.originalUrl;
-  //console.log('\n\nGET: ',url);
+  if(friendly) {
+    console.log('friendly site:',url);
+  }
   
   const upstream = await fetch(url);
   const contentType = upstream.headers.get('content-type');
@@ -87,7 +101,7 @@ app.get('*', async (req, res, next) => {
       $(this).contents();
     });
     $('noscript').remove();
-    if(stripCSS) {
+    if(!friendly && stripCSS) {
       $('style').remove();
       $('link').remove();
       $('*').removeAttr('class');
@@ -129,7 +143,7 @@ app.get('*', async (req, res, next) => {
     res.status(upstream.status);
     res.send(new CleanCSS(cssMinifyOptions).minify(text).styles);
     console.log('css minified',contentType,url);
-  } else if(minifyImages && contentType.startsWith('image/') && !contentType.includes('xml')) {
+  } else if(!friendly && minifyImages && contentType.startsWith('image/') && !contentType.includes('xml')) {
     const image = await Jimp.read(await upstream.buffer());
     image.resize(Math.min(maxSrcWidth,image.bitmap.width),Jimp.AUTO);
     /*if(contentType == 'image/png') {
