@@ -1,16 +1,18 @@
 {
-  "name":"retro-proxy",
-  "description":"A https to http proxy that allow old browsers to access modern sites, with conversion and compression options.",
-  "homepage":"https://github.com/DrKylstein/retro-proxy#readme",
-  "repository":"https://github.com/DrKylstein/retro-proxy",
-  "version":"0.0.1",
-  "license":"BSD-3-Clause",
+  "name": "retro-proxy",
+  "description": "A https to http proxy that allow old browsers to access modern sites, with conversion and compression options.",
+  "homepage": "https://github.com/DrKylstein/retro-proxy#readme",
+  "repository": "https://github.com/DrKylstein/retro-proxy",
+  "version": "0.0.1",
+  "license": "BSD-3-Clause",
   "scripts": {
-    "start": "nodemon ./ 3000"
+    "start": "node ./",
+    "mon": "nodemon ./"
   },
   "dependencies": {
     "cheerio": "^1.0.0-rc.3",
     "clean-css": "^4.2.3",
+    "dotenv": "^8.2.0",
     "express": "^4.17.1",
     "html-minifier": "^4.0.0",
     "jimp": "^0.16.1",

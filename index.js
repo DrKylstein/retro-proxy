@@ -1,3 +1,4 @@
+require('dotenv').config();
 const fs = require('fs');
 const fetch = require('node-fetch');
 const express = require('express');
@@ -8,32 +9,20 @@ const Jimp = require('jimp');
 
 const app = express();
 
-if(process.argv.includes('--help') || isNaN(process.argv[2])) {
-  const info = require('./package.json');
-  console.log(`${info.name} ${info.version}`);
-  console.log('\n'+info.description+'\n');
-  console.log('Arguments:');
-  console.log('    <port> : port to listen on');
-  console.log('    --css : Do not strip CSS. CSS will be minified.');
-  console.log('    --fullimages : Do not resize or convert images.');
-  console.log('    --friendlies=<file> : enables css and full images for the domains listed in file');
-  console.log('    --help : display this message');
-  process.exit();
-}
-const port = process.argv[2];
-const stripCSS = !process.argv.includes('--css');
-const minifyImages = !process.argv.includes('--fullimages');
+const port = process.env.PORT || 3000;
+const stripCSS = process.env.NO_CSS;
+const minifyImages = Boolean(process.env.RESIZE_TO);
 let friendlies = [];
-{
-  const arg = '--friendlies=';
-  const match = process.argv.find(a => a.startsWith(arg));
-  let filename = match.slice(arg.length);
-  const input = fs.readFileSync(filename,{encoding:'utf-8'});
+try {
+  const input = fs.readFileSync(process.env.ALLOWLIST,{encoding:'utf-8'});
   friendlies = input.trim().split('\n');
-  console.log('friendlies',friendlies);
+  console.log('allow-list',friendlies);
+} catch(error) {
+  console.error('Failed to load allow-list!');
+  friendlies = [];
 }
-const maxSrcWidth = 800;
-const maxInlineWidth = 608;
+const maxSrcWidth = process.env.RESIZE_TO;
+const maxInlineWidth = process.env.SCALE_TO;
 
 const cssMinifyOptions = {
   compatibility: {
@@ -106,25 +95,29 @@ app.get('*', async (req, res, next) => {
       $('link').remove();
       $('*').removeAttr('class');
       $('*').removeAttr('style');
+      if(maxInlineWidth) {
+        $("img").each(function(index) {
+          const width = $(this).attr('width');
+          const height = $(this).attr('height');
+          if(!width && !height) {
+            $(this).attr('width',maxInlineWidth);
+          }
+        });
+      }
+    }
+    if(maxInlineWidth) {
       $("img").each(function(index) {
         const width = $(this).attr('width');
         const height = $(this).attr('height');
-        if(!width && !height) {
-          $(this).attr('width',maxInlineWidth);
+        if(width) {
+          const newWidth = Math.min(maxInlineWidth,width);
+          $(this).attr('width',newWidth);
+          if(height) {
+            $(this).attr('height',height*newWidth/width);
+          }
         }
       });
     }
-    $("img").each(function(index) {
-      const width = $(this).attr('width');
-      const height = $(this).attr('height');
-      if(width) {
-        const newWidth = Math.min(maxInlineWidth,width);
-        $(this).attr('width',newWidth);
-        if(height) {
-          $(this).attr('height',height*newWidth/width);
-        }
-      }
-    });
     $("[href^='https:']").each(function(index,element) {
       const href = $(element).attr('href');
       $(this).attr('href',href.replace(/^https:/, 'http:'));
