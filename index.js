@@ -11,6 +11,7 @@ const app = express();
 
 const port = process.env.PORT || 3000;
 const stripCSS = process.env.NO_CSS;
+const stripJs = process.env.NO_JS;
 const minifyImages = Boolean(process.env.RESIZE_TO);
 let friendlies = [];
 try {
@@ -85,11 +86,13 @@ app.get('*', async (req, res, next) => {
   if(contentType.startsWith('text/html')) {
     const text = await upstream.text();
     const $ = cheerio.load(text);
-    $('script').remove();
-    $('noscript').after(function(index) {
-      $(this).contents();
-    });
-    $('noscript').remove();
+    if(!friendly && stripJs) {
+      $('script').remove();
+      $('noscript').after(function(index) {
+        $(this).contents();
+      });
+      $('noscript').remove();
+    }
     if(!friendly && stripCSS) {
       $('style').remove();
       $('link').remove();
@@ -129,11 +132,11 @@ app.get('*', async (req, res, next) => {
     res.set('Content-Type','text/html');
     res.status(upstream.status);
     if(!friendly) {
+      console.log('html minified',contentType,url);
       res.send(minify($.root().html().replace(/&apos;/g,"'"),minifyOptions));
     } else {
       res.send($.root().html());
     }
-    console.log('html minified',contentType,url);
   } else if(contentType.startsWith('text/css')) {
     const text = await upstream.text();
     res.set('Content-Type','text/css');
