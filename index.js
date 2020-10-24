@@ -128,7 +128,11 @@ app.get('*', async (req, res, next) => {
     });
     res.set('Content-Type','text/html');
     res.status(upstream.status);
-    res.send(minify($.root().html().replace(/&apos;/g,"'"),minifyOptions));
+    if(!friendly) {
+      res.send(minify($.root().html().replace(/&apos;/g,"'"),minifyOptions));
+    } else {
+      res.send($.root().html());
+    }
     console.log('html minified',contentType,url);
   } else if(contentType.startsWith('text/css')) {
     const text = await upstream.text();
