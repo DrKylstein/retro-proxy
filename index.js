@@ -6,6 +6,7 @@ const cheerio = require('cheerio');
 const minify = require('html-minifier').minify;
 const CleanCSS = require('clean-css');
 const Jimp = require('jimp');
+const { URL } = require('url');
 
 const app = express();
 
@@ -84,6 +85,7 @@ app.get('*', async (req, res, next) => {
   const contentType = upstream.headers.get('content-type');
   //console.log(contentType);
   if(contentType.startsWith('text/html')) {
+    const imageSizes = {};
     const text = await upstream.text();
     const $ = cheerio.load(text);
     if(!friendly && stripJs) {
@@ -98,28 +100,36 @@ app.get('*', async (req, res, next) => {
       $('link').remove();
       $('*').removeAttr('class');
       $('*').removeAttr('style');
-      if(maxInlineWidth) {
-        $("img").each(function(index) {
-          const width = $(this).attr('width');
-          const height = $(this).attr('height');
-          if(!width && !height) {
-            $(this).attr('width',maxInlineWidth);
-          }
-        });
-      }
     }
-    if(maxInlineWidth) {
+    if(!friendly && maxInlineWidth) {
+      const imgs = [];
       $("img").each(function(index) {
-        const width = $(this).attr('width');
-        const height = $(this).attr('height');
-        if(width) {
-          const newWidth = Math.min(maxInlineWidth,width);
-          $(this).attr('width',newWidth);
-          if(height) {
-            $(this).attr('height',height*newWidth/width);
-          }
-        }
+        imgs.push(this);
       });
+      for(let img of imgs) {
+        const attrWidth = $(img).attr('width');
+        const attrHeight = $(img).attr('height');
+        if(!attrWidth) {
+          const src = new URL($(img).attr('src'), url).href;
+          try {
+            if(!imageSizes[src]) {
+              const image = await Jimp.read(src);
+              imageSizes[src] = {width:image.bitmap.width,height:image.bitmap.height};
+            }
+            const width = Math.min(maxInlineWidth,imageSizes[src].width);
+            const height = imageSizes[src].height * width / imageSizes[src].width;
+            $(this).attr('width',width);
+            $(this).attr('height',height);
+          } catch(error) {
+            console.error(error);
+          }
+        } else {
+          const width = Math.min(maxInlineWidth,attrWidth);
+          const height = attrHeight * width / attrWidth;
+          $(this).attr('width',width);
+          $(this).attr('height',height);
+        }
+      }
     }
     $("[href^='https:']").each(function(index,element) {
       const href = $(element).attr('href');
@@ -146,18 +156,11 @@ app.get('*', async (req, res, next) => {
   } else if(!friendly && minifyImages && contentType.startsWith('image/') && !contentType.includes('xml')) {
     const image = await Jimp.read(await upstream.buffer());
     image.resize(Math.min(maxSrcWidth,image.bitmap.width),Jimp.AUTO);
-    /*if(contentType == 'image/png') {
-      const output = await image.getBufferAsync('image/gif');
-      res.set('Content-Type','image/gif');
-      res.status(upstream.status);
-      res.send(output);
-    } else {*/
-      image.quality(50);
-      const output = await image.getBufferAsync('image/jpeg');
-      res.set('Content-Type','image/jpeg');
-      res.status(upstream.status);
-      res.send(output);      
-    //}
+    image.quality(50);
+    const output = await image.getBufferAsync('image/jpeg');
+    res.set('Content-Type','image/jpeg');
+    res.status(upstream.status);
+    res.send(output);      
     console.log('image minified',contentType,url);
   } else {
     res.set('Content-Type',contentType);
