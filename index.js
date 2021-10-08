@@ -80,13 +80,13 @@ app.get('*', async (req, res, next) => {
   if(friendly) {
     console.log('friendly site:',url);
   }
-  
+
   const upstream = await fetch(url);
   const contentType = upstream.headers.get('content-type');
   //console.log(contentType);
   if(contentType.startsWith('text/html')) {
     const imageSizes = {};
-    const text = await upstream.text();
+    const text = (await upstream.text()).replace(/https:\/\//g,'http://');
     const $ = cheerio.load(text);
     if(!friendly && stripJs) {
       $('script').remove();
@@ -131,14 +131,14 @@ app.get('*', async (req, res, next) => {
         }
       }
     }
-    $("[href^='https:']").each(function(index,element) {
+    /*$("[href^='https:']").each(function(index,element) {
       const href = $(element).attr('href');
       $(this).attr('href',href.replace(/^https:/, 'http:'));
     });
     $("[src^='https:']").each(function() {
       const src = $(this).attr('src');
       $(this).attr('src',src.replace(/^https:/, 'http:'));
-    });
+    });*/
     res.set('Content-Type','text/html');
     res.status(upstream.status);
     if(!friendly) {
@@ -160,7 +160,7 @@ app.get('*', async (req, res, next) => {
     const output = await image.getBufferAsync('image/jpeg');
     res.set('Content-Type','image/jpeg');
     res.status(upstream.status);
-    res.send(output);      
+    res.send(output);
     console.log('image minified',contentType,url);
   } else {
     res.set('Content-Type',contentType);
