@@ -10,6 +10,7 @@ const { URL } = require('url');
 
 const app = express();
 
+const ip = process.env.IP;
 const port = process.env.PORT || 3000;
 const stripCSS = process.env.NO_CSS;
 const stripJs = process.env.NO_JS;
@@ -169,6 +170,10 @@ app.get('*', async (req, res, next) => {
   }
 });
 
-app.listen(port);
+if (ip != '') {
+  app.listen(port, ip);
+} else {
+  app.listen(port);
+}
 
 console.log(`Listening on port ${port}, CSS is ${stripCSS?'disabled':'enabled'}, images are ${minifyImages?'compressed':'original quality'}`);
