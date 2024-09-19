@@ -73,6 +73,7 @@ const minifyOptions = {
   processConditionalComments: true,
   removeComments: true,
   minifyCSS: stripCSS ? false : cssMinifyOptions,
+  continueOnParseError: true
 };
 
 app.get("*", async (req, res, next) => {
@@ -154,15 +155,14 @@ app.get("*", async (req, res, next) => {
       res.set("Content-Type", "text/html");
       res.status(upstream.status);
       if (!friendly) {
-        console.log("html minified", contentType, url);
-        res.send(
-          minify(
-            $.root()
-              .html()
-              .replace(/&apos;/g, "'"),
-            minifyOptions
-          )
+        const minified = minify(
+          $.root()
+            .html()
+            .replace(/&apos;/g, "'"),
+          minifyOptions
         );
+        console.log("html minified", contentType, url);
+        res.send(minified);
       } else {
         res.send(
           $.root()
@@ -207,10 +207,7 @@ app.get("*", async (req, res, next) => {
   </head>
   <body>
     <h1>502 - Bad Gateway</h1>
-    <p>An error occurred while retrieving the page:
-    <p>
-      ${error}
-    </p>
+    <p>An error occurred while retrieving the page. Please check the server log for details.
   </body>
 </html>`
     );
@@ -222,7 +219,6 @@ if (ip != "") {
 } else {
   app.listen(port);
 }
-
 console.log(
   `Listening on port ${port}, CSS is ${
     stripCSS ? "disabled" : "enabled"
