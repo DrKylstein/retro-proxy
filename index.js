@@ -136,7 +136,7 @@ app.get("*", async (req, res, next) => {
                 $(this).attr("width", width);
                 $(this).attr("height", height);
               } catch (error) {
-                console.error(error);
+                console.error("Unable to resize image: "+error);
               }
             } else {
               const width = Math.min(maxInlineWidth, attrWidth);
