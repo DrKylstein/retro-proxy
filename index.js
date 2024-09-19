@@ -21,7 +21,7 @@ try {
   friendlies = input.trim().split("\n");
   console.log("allow-list", friendlies);
 } catch (error) {
-  console.error("Failed to load allow-list!");
+  console.error('Failed to open "allowed.txt"! See allowed.txt.example for a starting point.');
   friendlies = [];
 }
 const maxSrcWidth = process.env.RESIZE_TO;
