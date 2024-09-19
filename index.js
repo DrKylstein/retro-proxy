@@ -102,37 +102,47 @@ app.get("*", async (req, res, next) => {
         $("*").removeAttr("class");
         $("*").removeAttr("style");
       }
-      if (!friendly && maxInlineWidth) {
+      if (!friendly) {
         const imgs = [];
-        $("img").each(function (index) {
-          imgs.push(this);
+        $("img").each(function () {
+          const src = new URL($(this).attr("src"), url).href;
+          //remove SVGs for now
+          if (src.toLowerCase().endsWith(".svg")) {
+            $(this).remove();
+          } else {
+            imgs.push(this);
+          }
         });
-        for (let img of imgs) {
-          const attrWidth = $(img).attr("width");
-          const attrHeight = $(img).attr("height");
-          if (!attrWidth) {
+
+        if (maxInlineWidth) {
+          //set image tag sizes
+          for (let img of imgs) {
             const src = new URL($(img).attr("src"), url).href;
-            try {
-              if (!imageSizes[src]) {
-                const image = await Jimp.read(src);
-                imageSizes[src] = {
-                  width: image.bitmap.width,
-                  height: image.bitmap.height,
-                };
+            const attrWidth = $(img).attr("width");
+            const attrHeight = $(img).attr("height");
+            if (!attrWidth) {
+              try {
+                if (!imageSizes[src]) {
+                  const image = await Jimp.read(src);
+                  imageSizes[src] = {
+                    width: image.bitmap.width,
+                    height: image.bitmap.height,
+                  };
+                }
+                const width = Math.min(maxInlineWidth, imageSizes[src].width);
+                const height =
+                  (imageSizes[src].height * width) / imageSizes[src].width;
+                $(this).attr("width", width);
+                $(this).attr("height", height);
+              } catch (error) {
+                console.error(error);
               }
-              const width = Math.min(maxInlineWidth, imageSizes[src].width);
-              const height =
-                (imageSizes[src].height * width) / imageSizes[src].width;
+            } else {
+              const width = Math.min(maxInlineWidth, attrWidth);
+              const height = (attrHeight * width) / attrWidth;
               $(this).attr("width", width);
               $(this).attr("height", height);
-            } catch (error) {
-              console.error(error);
             }
-          } else {
-            const width = Math.min(maxInlineWidth, attrWidth);
-            const height = (attrHeight * width) / attrWidth;
-            $(this).attr("width", width);
-            $(this).attr("height", height);
           }
         }
       }
@@ -175,7 +185,8 @@ app.get("*", async (req, res, next) => {
       contentType.startsWith("image/") &&
       !contentType.includes("xml")
     ) {
-      const image = await Jimp.read(await upstream.buffer());
+      const buffer = await upstream.buffer();
+      const image = await Jimp.read(buffer);
       image.resize(Math.min(maxSrcWidth, image.bitmap.width), Jimp.AUTO);
       image.quality(50);
       const output = await image.getBufferAsync("image/jpeg");
