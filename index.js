@@ -146,14 +146,11 @@ app.get("*", async (req, res, next) => {
           }
         }
       }
-      /*$("[href^='https:']").each(function(index,element) {
+      //fix root-relative URLs for Netscape
+      $("[href^='/']").each(function(index,element) {
       const href = $(element).attr('href');
-      $(this).attr('href',href.replace(/^https:/, 'http:'));
+      $(this).attr('href',new URL(url).origin+href);
     });
-    $("[src^='https:']").each(function() {
-      const src = $(this).attr('src');
-      $(this).attr('src',src.replace(/^https:/, 'http:'));
-    });*/
       res.set("Content-Type", "text/html");
       res.status(upstream.status);
       if (!friendly) {
